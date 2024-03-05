@@ -1,35 +1,66 @@
 import logo from './logo.svg';
 import './App.css';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { useCollectionData } from 'react-firebase-hooks/firestore';
+import { auth, firestore, googleProvider } from './config/firebase';
+import { collection } from 'firebase/firestore';
+import { signInWithPopup } from 'firebase/auth';
 
-import firebase from "firebase/app";
-import 'firebase/firestore';
-import 'firebase/auth';
-
-import { useAuthState } from "react-firebase-hooks/auth";
-import { useCollectionData } from "react-firebase-hooks/firestore";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyA-u93G1t88MkqFWL-hm1jRCiqL_gTnghU",
-  authDomain: "instant-chat-59328.firebaseapp.com",
-  projectId: "instant-chat-59328",
-  storageBucket: "instant-chat-59328.appspot.com",
-  messagingSenderId: "532947066136",
-  appId: "1:532947066136:web:5e2cb037a38ca611bf526d",
-  measurementId: "G-BHL00JNZ78"
-};
-
-const app = firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const firestore = firebase.firestore();
 
 function App() {
+  const [user] = useAuthState(auth);
+  
   return (
     <div className="App">
-      <header className="App-header">
+      <header>
 
       </header>
+
+      <section>
+        {user ? <ChatRoom /> : <SignIn />}
+      </section>
     </div>
   );
+}
+
+function SignIn() {
+  const signInWithGoogle = async () => {
+    try {
+      signInWithPopup(auth, googleProvider);
+    }
+    catch (error) {
+      console.log(error);
+    }
+  }
+  return (
+    <button onClick={signInWithGoogle}>Sing In</button>
+  )
+}
+
+function SignOut() {
+  return auth.currentUser && (
+    <button onClick={() => auth.signOut()}>Sign Out</button>
+  );
+}
+
+function ChatRoom() {
+  const messagesRef = collection(firestore, 'messages');
+  const query = messagesRef.orderBy('createdAt').limit(25);
+
+  const [messages] = useCollectionData(query, { idField: 'id' });
+
+  return (
+    <>
+      <div>
+        { messages && messages.map((message) => <ChatMessage key={message.id} message={message} />)}
+      </div>
+    </>
+  );
+}
+
+function ChatMessage(props) {
+  const { text, uid } = props.message;
+  return <p>{text}</p>
 }
 
 export default App;
